@@ -92,8 +92,8 @@ func (p *Processor) processSameFrame(conn wknet.Conn, frameType wkproto.FrameTyp
 // #################### conn auth ####################
 func (p *Processor) processAuth(conn wknet.Conn, connectPacket *wkproto.ConnectPacket) {
 	var (
-		uid                             = connectPacket.UID
-		devceLevel  wkproto.DeviceLevel = wkproto.DeviceLevelMaster
+		uid         = connectPacket.UID
+		devceLevel  = wkproto.DeviceLevelMaster
 		err         error
 		devceLevelI uint8
 		token       string
@@ -345,13 +345,14 @@ func (p *Processor) prcocessChannelMessages(conn wknet.Conn, channelID string, c
 	// ########## message decrypt and message store ##########
 	for _, sendPacket := range sendPackets {
 		var messageID = p.genMessageID() // generate messageID
-
+		var timestamp = time.Now().UnixMilli()
 		if sendPacket.SyncOnce { // client not support send syncOnce message
 			sendackPackets = append(sendackPackets, &wkproto.SendackPacket{
 				Framer:      sendPacket.Framer,
 				ClientSeq:   sendPacket.ClientSeq,
 				ClientMsgNo: sendPacket.ClientMsgNo,
 				MessageID:   messageID,
+				Timestamp:   timestamp,
 				ReasonCode:  wkproto.ReasonNotSupportHeader,
 			})
 			continue
@@ -364,6 +365,7 @@ func (p *Processor) prcocessChannelMessages(conn wknet.Conn, channelID string, c
 				ClientSeq:   sendPacket.ClientSeq,
 				ClientMsgNo: sendPacket.ClientMsgNo,
 				MessageID:   messageID,
+				Timestamp:   timestamp,
 				ReasonCode:  wkproto.ReasonPayloadDecodeError,
 			})
 			continue
@@ -386,7 +388,7 @@ func (p *Processor) prcocessChannelMessages(conn wknet.Conn, channelID string, c
 				ChannelID:   sendPacket.ChannelID,
 				ChannelType: sendPacket.ChannelType,
 				Topic:       sendPacket.Topic,
-				Timestamp:   time.Now().UnixMilli(),
+				Timestamp:   timestamp,
 				Payload:     decodePayload,
 				// ---------- 以下不参与编码 ------------
 				ClientSeq: sendPacket.ClientSeq,
@@ -455,6 +457,7 @@ func (p *Processor) getSendackPacket(msg *Message, reasonCode wkproto.ReasonCode
 		ClientMsgNo: msg.ClientMsgNo,
 		ClientSeq:   msg.ClientSeq,
 		MessageID:   msg.MessageID,
+		Timestamp:   msg.Timestamp,
 		MessageSeq:  msg.MessageSeq,
 		ReasonCode:  reasonCode,
 	}
@@ -466,6 +469,7 @@ func (p *Processor) getSendackPacketWithSendPacket(sendPacket *wkproto.SendPacke
 		Framer:      sendPacket.Framer,
 		ClientMsgNo: sendPacket.ClientMsgNo,
 		ClientSeq:   sendPacket.ClientSeq,
+		Timestamp:   time.Now().UnixMilli(),
 		ReasonCode:  reasonCode,
 	}
 
