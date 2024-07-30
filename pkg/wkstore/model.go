@@ -19,13 +19,14 @@ type Conversation struct {
 	UnreadCount     int    // Number of unread messages
 	Timestamp       int64  // Last session timestamp (13 digits)
 	LastMsgSeq      uint32 // Sequence number of the last message
+	OffsetMsgSeq    uint32 // Sequence number of the last read message
 	LastClientMsgNo string // Last message client number
 	LastMsgID       uint64 // Last message ID
 	Version         int64  // Data version
 }
 
 func (c *Conversation) String() string {
-	return fmt.Sprintf("uid:%s channelID:%s channelType:%d unreadCount:%d timestamp: %d lastMsgSeq:%d lastClientMsgNo:%s lastMsgID:%d version:%d", c.UID, c.ChannelID, c.ChannelType, c.UnreadCount, c.Timestamp, c.LastMsgSeq, c.LastClientMsgNo, c.LastMsgID, c.Version)
+	return fmt.Sprintf("uid:%s channelID:%s channelType:%d unreadCount:%d timestamp: %d lastMsgSeq:%d offsetMsgSeq:%d lastClientMsgNo:%s lastMsgID:%d version:%d", c.UID, c.ChannelID, c.ChannelType, c.UnreadCount, c.Timestamp, c.LastMsgSeq, c.OffsetMsgSeq, c.LastClientMsgNo, c.LastMsgID, c.Version)
 }
 
 type ConversationSet []*Conversation
@@ -41,6 +42,7 @@ func (c ConversationSet) Encode() []byte {
 		enc.WriteInt32(int32(cn.UnreadCount))
 		enc.WriteInt64(cn.Timestamp)
 		enc.WriteUint32(cn.LastMsgSeq)
+		enc.WriteUint32(cn.OffsetMsgSeq)
 		enc.WriteString(cn.LastClientMsgNo)
 		enc.WriteUint64(cn.LastMsgID)
 		enc.WriteInt64(cn.Version)
@@ -89,6 +91,9 @@ func decodeConversation(decoder *wkproto.Decoder) (*Conversation, error) {
 		return nil, err
 	}
 	if cn.LastMsgSeq, err = decoder.Uint32(); err != nil {
+		return nil, err
+	}
+	if cn.OffsetMsgSeq, err = decoder.Uint32(); err != nil {
 		return nil, err
 	}
 	if cn.LastClientMsgNo, err = decoder.String(); err != nil {

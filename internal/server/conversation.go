@@ -183,7 +183,7 @@ func (cm *ConversationManager) SetConversationUnread(uid string, channelID strin
 	if conversation != nil {
 		conversation.UnreadCount = unread
 		if messageSeq > 0 {
-			conversation.LastMsgSeq = messageSeq
+			conversation.OffsetMsgSeq = messageSeq
 		}
 		cm.setNeedSave(uid)
 		return nil
@@ -196,7 +196,7 @@ func (cm *ConversationManager) SetConversationUnread(uid string, channelID strin
 	if conversation != nil {
 		conversation.UnreadCount = unread
 		if messageSeq > 0 {
-			conversation.LastMsgSeq = messageSeq
+			conversation.OffsetMsgSeq = messageSeq
 		}
 		cm.setConversationCache(uid, conversation)
 		cm.setNeedSave(uid)

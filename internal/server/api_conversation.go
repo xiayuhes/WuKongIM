@@ -2,10 +2,8 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/WuKongIM/WuKongIM/pkg/wkhttp"
@@ -91,10 +89,10 @@ func (s *ConversationAPI) clearConversationUnread(c *wkhttp.Context) {
 	conversation := s.s.conversationManager.GetConversation(req.UID, req.ChannelID, req.ChannelType)
 	if conversation == nil && req.MessageSeq > 0 {
 		conversation = &wkstore.Conversation{
-			UID:         req.UID,
-			ChannelID:   req.ChannelID,
-			ChannelType: req.ChannelType,
-			LastMsgSeq:  req.MessageSeq,
+			UID:          req.UID,
+			ChannelID:    req.ChannelID,
+			ChannelType:  req.ChannelType,
+			OffsetMsgSeq: req.MessageSeq,
 		}
 		s.s.conversationManager.AddOrUpdateConversation(req.UID, conversation)
 	} else {
@@ -130,11 +128,11 @@ func (s *ConversationAPI) setConversationUnread(c *wkhttp.Context) {
 	conversation := s.s.conversationManager.GetConversation(req.UID, req.ChannelID, req.ChannelType)
 	if conversation == nil && req.MessageSeq > 0 && req.Unread == 0 {
 		conversation = &wkstore.Conversation{
-			UID:         req.UID,
-			ChannelID:   req.ChannelID,
-			ChannelType: req.ChannelType,
-			UnreadCount: 0,
-			LastMsgSeq:  req.MessageSeq,
+			UID:          req.UID,
+			ChannelID:    req.ChannelID,
+			ChannelType:  req.ChannelType,
+			UnreadCount:  0,
+			OffsetMsgSeq: req.MessageSeq,
 		}
 		s.s.conversationManager.AddOrUpdateConversation(req.UID, conversation)
 	} else {
@@ -182,24 +180,6 @@ func (s *ConversationAPI) syncUserConversation(c *wkhttp.Context) {
 		c.ResponseError(err)
 		return
 	}
-	// msgCount := req.MsgCount
-	// if msgCount == 0 {
-	// 	msgCount = 100
-	// }
-
-	channelLastMsgSeqStrList := strings.Split(req.LastMsgSeqs, "|")
-	channelRecentMessageReqs := make([]*channelRecentMessageReq, 0, len(channelLastMsgSeqStrList))
-	channelLastMsgMap := map[string]uint32{} // 频道对应的messageSeq
-	for _, channelLastMsgSeqStr := range channelLastMsgSeqStrList {
-		channelLastMsgSeqs := strings.Split(channelLastMsgSeqStr, ":")
-		if len(channelLastMsgSeqs) != 3 {
-			continue
-		}
-		channelID := channelLastMsgSeqs[0]
-		channelTypeI, _ := strconv.Atoi(channelLastMsgSeqs[1])
-		lastMsgSeq, _ := strconv.ParseUint(channelLastMsgSeqs[2], 10, 64)
-		channelLastMsgMap[fmt.Sprintf("%s-%d", channelID, channelTypeI)] = uint32(lastMsgSeq)
-	}
 
 	conversations := s.s.conversationManager.GetConversations(req.UID, req.Version, req.Larges)
 	var newConversations = make([]*wkstore.Conversation, 0, len(conversations)+20)
@@ -207,86 +187,54 @@ func (s *ConversationAPI) syncUserConversation(c *wkhttp.Context) {
 		newConversations = append(newConversations, conversations...)
 	}
 
-	if len(req.Larges) > 0 && req.MsgCount > 0 {
-		for _, largeChannel := range req.Larges {
-			var existConversation *wkstore.Conversation
-			for _, cs := range conversations {
-				if cs.ChannelID == largeChannel.ChannelID && cs.ChannelType == largeChannel.ChannelType {
-					existConversation = cs
-					break
-				}
+	for _, largeChannel := range req.Larges {
+		var existConversation *wkstore.Conversation
+		for _, cs := range conversations {
+			if cs.ChannelID == largeChannel.ChannelID && cs.ChannelType == largeChannel.ChannelType {
+				existConversation = cs
+				break
 			}
-			lastMessages, err := s.s.store.LoadLastMsgs(largeChannel.ChannelID, largeChannel.ChannelType, 1)
-			if err != nil {
-				s.Error("查询大群最后一条消息失败！", zap.Error(err))
-				c.ResponseError(errors.New("查询大群最后一条消息失败！"))
-				return
+		}
+		lastMessages, err := s.s.store.LoadLastMsgs(largeChannel.ChannelID, largeChannel.ChannelType, 1)
+		if err != nil {
+			s.Error("查询大群最后一条消息失败！", zap.Error(err))
+			c.ResponseError(errors.New("查询大群最后一条消息失败！"))
+			return
+		}
+		var lastMessage *Message
+		if len(lastMessages) > 0 {
+			lastMessage = lastMessages[len(lastMessages)-1].(*Message)
+		}
+		if existConversation != nil {
+			if lastMessage != nil {
+				existConversation.Timestamp = lastMessage.Timestamp
+				existConversation.LastMsgSeq = lastMessage.MessageSeq
+				existConversation.LastClientMsgNo = lastMessage.ClientMsgNo
+				existConversation.LastMsgID = lastMessage.MessageID
+				existConversation.UnreadCount = int(lastMessage.MessageSeq - existConversation.OffsetMsgSeq)
 			}
-			var lastMessage *Message
-			if len(lastMessages) > 0 {
-				lastMessage = lastMessages[len(lastMessages)-1].(*Message)
-			}
-			if existConversation != nil {
 
-				if lastMessage != nil {
-					existConversation.Timestamp = lastMessage.Timestamp
-					existConversation.LastMsgSeq = lastMessage.MessageSeq
-					existConversation.LastClientMsgNo = lastMessage.ClientMsgNo
-					existConversation.LastMsgID = lastMessage.MessageID
-					existConversation.UnreadCount = 0
-				}
-
-			} else {
-				if lastMessage != nil {
-					newConversations = append(newConversations, &wkstore.Conversation{
-						UID:             req.UID,
-						ChannelID:       largeChannel.ChannelID,
-						ChannelType:     largeChannel.ChannelType,
-						UnreadCount:     0, // TODO: 这里未读数量没办法计算
-						Timestamp:       lastMessage.Timestamp,
-						LastMsgSeq:      lastMessage.MessageSeq,
-						LastClientMsgNo: lastMessage.ClientMsgNo,
-						LastMsgID:       lastMessage.MessageID,
-					})
-				}
-
+		} else {
+			if lastMessage != nil {
+				newConversations = append(newConversations, &wkstore.Conversation{
+					UID:             req.UID,
+					ChannelID:       largeChannel.ChannelID,
+					ChannelType:     largeChannel.ChannelType,
+					UnreadCount:     0, // TODO: 这里未读数量没办法计算.加入超级群时,主动设置一下会话
+					Timestamp:       lastMessage.Timestamp,
+					LastMsgSeq:      lastMessage.MessageSeq,
+					LastClientMsgNo: lastMessage.ClientMsgNo,
+					LastMsgID:       lastMessage.MessageID,
+				})
 			}
+
 		}
 	}
 
 	resps := make([]*syncUserConversationResp, 0, len(newConversations))
-	if len(newConversations) > 0 {
-		for _, conversation := range newConversations {
-			syncUserConversationR := newSyncUserConversationResp(conversation)
-
-			msgSeq := channelLastMsgMap[fmt.Sprintf("%s-%d", conversation.ChannelID, conversation.ChannelType)]
-			syncUserConversationR.OffsetMsgSeq = msgSeq
-			resps = append(resps, syncUserConversationR)
-
-			channelRecentMessageReqs = append(channelRecentMessageReqs, &channelRecentMessageReq{
-				ChannelID:   conversation.ChannelID,
-				ChannelType: conversation.ChannelType,
-				LastMsgSeq:  msgSeq,
-			})
-		}
-	}
-	if req.MsgCount > 0 {
-		channelRecentMessages, err := s.getRecentMessages(req.UID, int(req.MsgCount), channelRecentMessageReqs)
-		if err != nil {
-			s.Error("获取最近消息失败！", zap.Error(err), zap.String("uid", req.UID))
-			c.ResponseError(errors.New("获取最近消息失败！"))
-			return
-		}
-		if len(channelRecentMessages) > 0 {
-			for i := 0; i < len(resps); i++ {
-				resp := resps[i]
-				for _, channelRecentMessage := range channelRecentMessages {
-					if resp.ChannelID == channelRecentMessage.ChannelID && resp.ChannelType == channelRecentMessage.ChannelType {
-						resp.Recents = channelRecentMessage.Messages
-					}
-				}
-			}
-		}
+	for _, conversation := range newConversations {
+		syncUserConversationR := newSyncUserConversationResp(conversation)
+		resps = append(resps, syncUserConversationR)
 	}
 	c.JSON(http.StatusOK, resps)
 }
