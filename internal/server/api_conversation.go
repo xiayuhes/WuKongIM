@@ -229,7 +229,7 @@ func (s *ConversationAPI) syncUserConversation(c *wkhttp.Context) {
 			if existConversation != nil {
 
 				if lastMessage != nil {
-					existConversation.Timestamp = int64(lastMessage.Timestamp)
+					existConversation.Timestamp = lastMessage.Timestamp
 					existConversation.LastMsgSeq = lastMessage.MessageSeq
 					existConversation.LastClientMsgNo = lastMessage.ClientMsgNo
 					existConversation.LastMsgID = lastMessage.MessageID
@@ -243,7 +243,7 @@ func (s *ConversationAPI) syncUserConversation(c *wkhttp.Context) {
 						ChannelID:       largeChannel.ChannelID,
 						ChannelType:     largeChannel.ChannelType,
 						UnreadCount:     0, // TODO: 这里未读数量没办法计算
-						Timestamp:       int64(lastMessage.Timestamp),
+						Timestamp:       lastMessage.Timestamp,
 						LastMsgSeq:      lastMessage.MessageSeq,
 						LastClientMsgNo: lastMessage.ClientMsgNo,
 						LastMsgID:       lastMessage.MessageID,

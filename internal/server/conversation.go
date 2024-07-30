@@ -106,7 +106,7 @@ func (cm *ConversationManager) clearExpireConversations() {
 			for _, key := range keys {
 				conversation, _ := cache.Get(key)
 				if conversation != nil {
-					if conversation.Timestamp+int64(cm.s.opts.Conversation.CacheExpire.Seconds()) < time.Now().Unix() {
+					if conversation.Timestamp/1000+int64(cm.s.opts.Conversation.CacheExpire.Seconds()) < time.Now().Unix() {
 						cache.Remove(key)
 					}
 				}
@@ -292,7 +292,7 @@ func (cm *ConversationManager) flushUserConversations(uid string) {
 
 		// 移除过期的最近会话缓存
 		for _, conversation := range conversations {
-			if conversation.Timestamp+int64(cm.s.opts.Conversation.CacheExpire.Seconds()) < time.Now().Unix() {
+			if conversation.Timestamp/1000+int64(cm.s.opts.Conversation.CacheExpire.Seconds()) < time.Now().Unix() {
 				cm.deleteConversationCache(uid, conversation.ChannelID, conversation.ChannelType)
 			}
 		}
@@ -385,7 +385,7 @@ func (cm *ConversationManager) calConversation(message *Message, subscriber stri
 			ChannelID:       channelID,
 			ChannelType:     message.ChannelType,
 			UnreadCount:     unreadCount,
-			Timestamp:       int64(message.Timestamp),
+			Timestamp:       message.Timestamp,
 			LastMsgSeq:      message.MessageSeq,
 			LastClientMsgNo: message.ClientMsgNo,
 			LastMsgID:       message.MessageID,
@@ -399,7 +399,7 @@ func (cm *ConversationManager) calConversation(message *Message, subscriber stri
 			modify = true
 		}
 		if conversation.LastMsgSeq < message.MessageSeq { // 只有当前会话的messageSeq小于当前消息的messageSeq才更新
-			conversation.Timestamp = int64(message.Timestamp)
+			conversation.Timestamp = message.Timestamp
 			conversation.LastClientMsgNo = message.ClientMsgNo
 			conversation.LastMsgSeq = message.MessageSeq
 			conversation.LastMsgID = message.MessageID
