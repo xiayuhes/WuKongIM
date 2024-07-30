@@ -25,7 +25,7 @@ func TestGetConversations(t *testing.T) {
 			ChannelID:   "group1",
 			ChannelType: 2,
 			FromUID:     "test",
-			Timestamp:   int32(time.Now().Unix()),
+			Timestamp:   time.Now().UnixMilli(),
 			Payload:     []byte("hello"),
 		},
 	}
@@ -40,7 +40,7 @@ func TestGetConversations(t *testing.T) {
 			ChannelID:   "group2",
 			ChannelType: 2,
 			FromUID:     "test",
-			Timestamp:   int32(time.Now().Unix()),
+			Timestamp:   time.Now().UnixMilli(),
 			Payload:     []byte("hello"),
 		},
 	}

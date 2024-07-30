@@ -198,7 +198,7 @@ func (m *MessageAPI) send(c *wkhttp.Context) {
 	})
 }
 
-func (m *MessageAPI) sendMessageToChannel(req MessageSendReq, channelID string, channelType uint8, clientMsgNo string, streamFlag wkproto.StreamFlag) (int64, uint32, error) {
+func (m *MessageAPI) sendMessageToChannel(req MessageSendReq, channelID string, channelType uint8, clientMsgNo string, streamFlag wkproto.StreamFlag) (uint64, uint32, error) {
 
 	m.s.monitor.SendPacketInc(req.Header.NoPersist != 1)
 	m.s.monitor.SendSystemMsgInc()
@@ -258,7 +258,7 @@ func (m *MessageAPI) sendMessageToChannel(req MessageSendReq, channelID string, 
 			ChannelID:   channelID,
 			ChannelType: channelType,
 			Expire:      req.Expire,
-			Timestamp:   int32(time.Now().Unix()),
+			Timestamp:   time.Now().UnixMilli(),
 			Payload:     req.Payload,
 		},
 		fromDeviceFlag: wkproto.SYSTEM,

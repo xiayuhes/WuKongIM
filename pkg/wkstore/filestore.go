@@ -525,7 +525,7 @@ func (f *FileStore) AppendMessageOfNotifyQueue(messages []Message) error {
 	})
 }
 
-func (f *FileStore) RemoveMessagesOfNotifyQueue(messageIDs []int64) error {
+func (f *FileStore) RemoveMessagesOfNotifyQueue(messageIDs []uint64) error {
 	if len(messageIDs) == 0 {
 		return nil
 	}

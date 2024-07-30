@@ -154,7 +154,7 @@ func (w *Webhook) notifyOfflineMsg(msg *Message, large bool, subscribers []strin
 				Setting:      msg.Setting.Uint8(),
 				ClientMsgNo:  msg.ClientMsgNo,
 				MessageID:    msg.MessageID,
-				MessageIDStr: strconv.FormatInt(msg.MessageID, 10),
+				MessageIDStr: strconv.FormatUint(msg.MessageID, 10),
 				MessageSeq:   msg.MessageSeq,
 				FromUID:      msg.FromUID,
 				ChannelID:    msg.ChannelID,
@@ -200,7 +200,7 @@ func (w *Webhook) Offline(uid string, deviceFlag wkproto.DeviceFlag, id int64, o
 func (w *Webhook) notifyQueueLoop() {
 	errorSleepTime := time.Second * 1 // 发生错误后sleep时间
 	ticker := time.NewTicker(w.s.opts.Webhook.MsgNotifyEventPushInterval)
-	errMessageIDMap := make(map[int64]int) // 记录错误的消息ID value为错误次数
+	errMessageIDMap := make(map[uint64]int) // 记录错误的消息ID value为错误次数
 	if w.s.opts.WebhookOn() {
 		for {
 			messages, err := w.s.store.GetMessagesOfNotifyQueue(w.s.opts.Webhook.MsgNotifyEventCountPerPush)
@@ -230,7 +230,7 @@ func (w *Webhook) notifyQueueLoop() {
 				}
 				if err != nil {
 					w.Error("请求所有消息通知webhook失败！", zap.Error(err))
-					errMessageIDs := make([]int64, 0, len(messages))
+					errMessageIDs := make([]uint64, 0, len(messages))
 					for _, message := range messages {
 						errCount := errMessageIDMap[message.GetMessageID()]
 						errCount++
@@ -240,10 +240,10 @@ func (w *Webhook) notifyQueueLoop() {
 						}
 					}
 					if len(errMessageIDs) > 0 {
-						w.Error("消息通知失败超过最大次数！", zap.Int64s("messageIDs", errMessageIDs))
+						w.Error("消息通知失败超过最大次数！", zap.Uint64s("messageIDs", errMessageIDs))
 						err = w.s.store.RemoveMessagesOfNotifyQueue(errMessageIDs)
 						if err != nil {
-							w.Warn("从通知队列里移除消息失败！", zap.Error(err), zap.Int64s("messageIDs", errMessageIDs))
+							w.Warn("从通知队列里移除消息失败！", zap.Error(err), zap.Uint64s("messageIDs", errMessageIDs))
 						}
 						for _, errMessageID := range errMessageIDs {
 							delete(errMessageIDMap, errMessageID)
@@ -253,7 +253,7 @@ func (w *Webhook) notifyQueueLoop() {
 					continue
 				}
 
-				messageIDs := make([]int64, 0, len(messages))
+				messageIDs := make([]uint64, 0, len(messages))
 				for _, message := range messages {
 					messageID := message.(*Message).MessageID
 					messageIDs = append(messageIDs, messageID)
@@ -262,7 +262,7 @@ func (w *Webhook) notifyQueueLoop() {
 				}
 				err = w.s.store.RemoveMessagesOfNotifyQueue(messageIDs)
 				if err != nil {
-					w.Warn("从通知队列里移除消息失败！", zap.Error(err), zap.Int64s("messageIDs", messageIDs), zap.String("Webhook", w.s.opts.Webhook.HTTPAddr))
+					w.Warn("从通知队列里移除消息失败！", zap.Error(err), zap.Uint64s("messageIDs", messageIDs), zap.String("Webhook", w.s.opts.Webhook.HTTPAddr))
 					time.Sleep(errorSleepTime) // 如果报错就休息下
 					continue
 				}

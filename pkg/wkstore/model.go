@@ -17,10 +17,10 @@ type Conversation struct {
 	ChannelID       string // Conversation channel
 	ChannelType     uint8
 	UnreadCount     int    // Number of unread messages
-	Timestamp       int64  // Last session timestamp (10 digits)
+	Timestamp       int64  // Last session timestamp (13 digits)
 	LastMsgSeq      uint32 // Sequence number of the last message
 	LastClientMsgNo string // Last message client number
-	LastMsgID       int64  // Last message ID
+	LastMsgID       uint64 // Last message ID
 	Version         int64  // Data version
 }
 
@@ -42,7 +42,7 @@ func (c ConversationSet) Encode() []byte {
 		enc.WriteInt64(cn.Timestamp)
 		enc.WriteUint32(cn.LastMsgSeq)
 		enc.WriteString(cn.LastClientMsgNo)
-		enc.WriteInt64(cn.LastMsgID)
+		enc.WriteUint64(cn.LastMsgID)
 		enc.WriteInt64(cn.Version)
 	}
 	return enc.Bytes()
@@ -94,7 +94,7 @@ func decodeConversation(decoder *wkproto.Decoder) (*Conversation, error) {
 	if cn.LastClientMsgNo, err = decoder.String(); err != nil {
 		return nil, err
 	}
-	if cn.LastMsgID, err = decoder.Int64(); err != nil {
+	if cn.LastMsgID, err = decoder.Uint64(); err != nil {
 		return nil, err
 	}
 	if cn.Version, err = decoder.Int64(); err != nil {
@@ -115,7 +115,7 @@ var (
 
 type StreamMeta struct {
 	StreamNo    string             `json:"stream_no"`
-	MessageID   int64              `json:"message_id"`
+	MessageID   uint64             `json:"message_id"`
 	ChannelID   string             `json:"channel_id"`
 	ChannelType uint8              `json:"channel_type"`
 	MessageSeq  uint32             `json:"message_seq"`

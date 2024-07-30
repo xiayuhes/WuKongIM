@@ -67,7 +67,7 @@ type Store interface {
 	AppendMessageOfNotifyQueue(m []Message) error
 	GetMessagesOfNotifyQueue(count int) ([]Message, error)
 	// RemoveMessagesOfNotifyQueue 从通知队列里移除消息
-	RemoveMessagesOfNotifyQueue(messageIDs []int64) error
+	RemoveMessagesOfNotifyQueue(messageIDs []uint64) error
 
 	DeleteChannelAndClearMessages(channelID string, channelType uint8) error
 

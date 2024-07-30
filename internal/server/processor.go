@@ -386,7 +386,7 @@ func (p *Processor) prcocessChannelMessages(conn wknet.Conn, channelID string, c
 				ChannelID:   sendPacket.ChannelID,
 				ChannelType: sendPacket.ChannelType,
 				Topic:       sendPacket.Topic,
-				Timestamp:   int32(time.Now().Unix()),
+				Timestamp:   time.Now().UnixMilli(),
 				Payload:     decodePayload,
 				// ---------- 以下不参与编码 ------------
 				ClientSeq: sendPacket.ClientSeq,
@@ -525,7 +525,7 @@ func (p *Processor) storeChannelMessagesToNotifyQueue(messages []*Message) error
 }
 
 // decode payload
-func (p *Processor) checkAndDecodePayload(messageID int64, sendPacket *wkproto.SendPacket, c wknet.Conn) ([]byte, error) {
+func (p *Processor) checkAndDecodePayload(messageID uint64, sendPacket *wkproto.SendPacket, c wknet.Conn) ([]byte, error) {
 	aesKey, aesIV := getAesKeyFromConn(c)
 	vail, err := p.sendPacketIsVail(sendPacket, c)
 	if err != nil {
@@ -656,7 +656,7 @@ func (p *Processor) processRecvacks(conn wknet.Conn, acks []*wkproto.RecvackPack
 			// p.Debug("移除重试队列里的消息！", zap.Uint32("messageSeq", ack.MessageSeq), zap.String("uid", conn.UID()), zap.Int64("clientID", conn.ID()), zap.Uint8("deviceFlag", conn.DeviceFlag()), zap.Uint8("deviceLevel", conn.DeviceLevel()), zap.String("deviceID", conn.DeviceID()), zap.Bool("syncOnce", ack.SyncOnce), zap.Bool("noPersist", ack.NoPersist), zap.Int64("messageID", ack.MessageID))
 			err := p.s.retryQueue.finishMessage(conn.UID(), conn.DeviceID(), ack.MessageID)
 			if err != nil {
-				p.Warn("移除重试队列里的消息失败！", zap.Error(err), zap.Uint32("messageSeq", ack.MessageSeq), zap.String("uid", conn.UID()), zap.Int64("clientID", conn.ID()), zap.Uint8("deviceFlag", conn.DeviceFlag()), zap.String("deviceID", conn.DeviceID()), zap.Int64("messageID", ack.MessageID))
+				p.Warn("移除重试队列里的消息失败！", zap.Error(err), zap.Uint32("messageSeq", ack.MessageSeq), zap.String("uid", conn.UID()), zap.Int64("clientID", conn.ID()), zap.Uint8("deviceFlag", conn.DeviceFlag()), zap.String("deviceID", conn.DeviceID()), zap.Uint64("messageID", ack.MessageID))
 			}
 		}
 		if ack.SyncOnce && persist && wkproto.DeviceLevel(conn.DeviceLevel()) == wkproto.DeviceLevelMaster { // 写扩散和存储并且是master等级的设备才会更新游标
@@ -723,8 +723,8 @@ func (p *Processor) getClientAesKeyAndIV(clientKey string, dhServerPrivKey [32]b
 }
 
 // 生成消息ID
-func (p *Processor) genMessageID() int64 {
-	return p.messageIDGen.Generate().Int64()
+func (p *Processor) genMessageID() uint64 {
+	return uint64(p.messageIDGen.Generate().Int64())
 }
 
 func (p *Processor) process(conn wknet.Conn) {

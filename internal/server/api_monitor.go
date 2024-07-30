@@ -170,7 +170,7 @@ func (m *MonitorAPI) writeDataToMonitor(typ string, dataCallback func(subscribeI
 					SyncOnce:  false,
 				},
 				MessageID:   m.s.dispatch.processor.genMessageID(),
-				Timestamp:   int32(time.Now().Unix()),
+				Timestamp:   time.Now().UnixMilli(),
 				ChannelID:   monitorChannel.ChannelID,
 				ChannelType: monitorChannel.ChannelType,
 				Payload:     rDataBytes,

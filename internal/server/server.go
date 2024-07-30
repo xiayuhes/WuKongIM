@@ -60,7 +60,7 @@ type Server struct {
 }
 
 func New(opts *Options) *Server {
-	now := time.Now().UTC()
+	now := time.Now()
 	s := &Server{
 		opts:             opts,
 		Log:              wklog.NewWKLog("Server"),

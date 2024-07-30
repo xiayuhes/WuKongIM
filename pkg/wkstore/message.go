@@ -7,7 +7,7 @@ import (
 )
 
 type Message interface {
-	GetMessageID() int64
+	GetMessageID() uint64
 	SetSeq(seq uint32)
 	GetSeq() uint32
 	Encode() []byte

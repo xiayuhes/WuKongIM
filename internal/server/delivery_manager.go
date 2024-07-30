@@ -144,19 +144,19 @@ func (d *DeliveryManager) startRetryDeliveryMsg(msg *Message) {
 	}
 }
 func (d *DeliveryManager) retryDeliveryMsg(msg *Message) {
-	d.Debug("重试消息", zap.Int64("messageID", msg.MessageID), zap.String("toDeviceID", msg.toDeviceID), zap.String("toUID", msg.ToUID), zap.String("fromUID", msg.FromUID), zap.String("fromDeviceID", msg.fromDeviceID))
+	d.Debug("重试消息", zap.Uint64("messageID", msg.MessageID), zap.String("toDeviceID", msg.toDeviceID), zap.String("toUID", msg.ToUID), zap.String("fromUID", msg.FromUID), zap.String("fromDeviceID", msg.fromDeviceID))
 	msg.retryCount++
 	if strings.TrimSpace(msg.toDeviceID) == "" {
 		d.Error("非重试消息", zap.String("msg", msg.String()))
 		return
 	}
 	if msg.retryCount > d.s.opts.MessageRetry.MaxCount {
-		d.Debug("超过最大重试次数！", zap.Int64("messageID", msg.MessageID), zap.Int("messageMaxRetryCount", d.s.opts.MessageRetry.MaxCount))
+		d.Debug("超过最大重试次数！", zap.Uint64("messageID", msg.MessageID), zap.Int("messageMaxRetryCount", d.s.opts.MessageRetry.MaxCount))
 		return
 	}
 	recvConn := d.getRecvConn(msg.ToUID, msg.toDeviceID)
 	if recvConn == nil {
-		d.Debug("用户设备没在线，重试消息结束！", zap.String("uid", msg.ToUID), zap.Int32("msgTimestamp", msg.Timestamp), zap.Int64("messageID", msg.MessageID), zap.String("channelID", msg.ChannelID), zap.Uint8("channelType", msg.ChannelType), zap.String("toDeviceID", msg.toDeviceID))
+		d.Debug("用户设备没在线，重试消息结束！", zap.String("uid", msg.ToUID), zap.Int64("msgTimestamp", msg.Timestamp), zap.Uint64("messageID", msg.MessageID), zap.String("channelID", msg.ChannelID), zap.Uint8("channelType", msg.ChannelType), zap.String("toDeviceID", msg.toDeviceID))
 		return
 	}
 	channelID := msg.ChannelID

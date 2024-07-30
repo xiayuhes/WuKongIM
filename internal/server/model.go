@@ -36,7 +36,7 @@ type Message struct {
 	retryCount int   // 当前重试次数
 }
 
-func (m *Message) GetMessageID() int64 {
+func (m *Message) GetMessageID() uint64 {
 	return m.MessageID
 }
 
@@ -119,7 +119,7 @@ func MarshalMessage(version uint8, m *Message) []byte {
 	_ = enc.WriteByte(wkproto.ToFixHeaderUint8(m.RecvPacket))
 	enc.WriteUint8(version)
 	_ = enc.WriteByte(m.Setting.Uint8())
-	enc.WriteInt64(m.MessageID)
+	enc.WriteUint64(m.MessageID)
 	enc.WriteUint32(m.MessageSeq)
 	enc.WriteString(m.ClientMsgNo)
 	if m.Setting.IsSet(wkproto.SettingStream) {
@@ -127,7 +127,7 @@ func MarshalMessage(version uint8, m *Message) []byte {
 		enc.WriteUint32(m.StreamSeq)
 		enc.WriteUint8(uint8(m.StreamFlag))
 	}
-	enc.WriteInt32(m.Timestamp)
+	enc.WriteInt64(m.Timestamp)
 	enc.WriteString(m.FromUID)
 	enc.WriteString(m.ChannelID)
 	enc.WriteUint8(m.ChannelType)
@@ -168,7 +168,7 @@ func UnmarshalMessage(data []byte, m *Message) error {
 	m.Setting = wkproto.Setting(setting)
 
 	// messageID
-	if m.MessageID, err = dec.Int64(); err != nil {
+	if m.MessageID, err = dec.Uint64(); err != nil {
 		return err
 	}
 
@@ -195,7 +195,7 @@ func UnmarshalMessage(data []byte, m *Message) error {
 		m.StreamFlag = wkproto.StreamFlag(streamFlag)
 	}
 	// Timestamp
-	if m.Timestamp, err = dec.Int32(); err != nil {
+	if m.Timestamp, err = dec.Int64(); err != nil {
 		return err
 	}
 
@@ -249,7 +249,7 @@ func (m MessageRespSlice) Less(i, j int) bool { return m[i].MessageSeq < m[j].Me
 type MessageResp struct {
 	Header       MessageHeader      `json:"header"`                // 消息头
 	Setting      uint8              `json:"setting"`               // 设置
-	MessageID    int64              `json:"message_id"`            // 服务端的消息ID(全局唯一)
+	MessageID    uint64             `json:"message_id"`            // 服务端的消息ID(全局唯一)
 	MessageIDStr string             `json:"message_idstr"`         // 服务端的消息ID(全局唯一)
 	ClientMsgNo  string             `json:"client_msg_no"`         // 客户端消息唯一编号
 	StreamNo     string             `json:"stream_no,omitempty"`   // 流编号
@@ -261,7 +261,7 @@ type MessageResp struct {
 	ChannelType  uint8              `json:"channel_type"`          // 频道类型
 	Topic        string             `json:"topic,omitempty"`       // 话题ID
 	Expire       uint32             `json:"expire"`                // 消息过期时间
-	Timestamp    int32              `json:"timestamp"`             // 服务器消息时间戳(10位，到秒)
+	Timestamp    int64              `json:"timestamp"`             // 服务器消息时间戳(13位，到豪秒)
 	Payload      []byte             `json:"payload"`               // 消息内容
 	Streams      []*StreamItemResp  `json:"streams,omitempty"`     // 消息流内容
 }
@@ -272,7 +272,7 @@ func (m *MessageResp) from(messageD *Message, store wkstore.Store) {
 	m.Header.SyncOnce = wkutil.BoolToInt(messageD.SyncOnce)
 	m.Setting = messageD.Setting.Uint8()
 	m.MessageID = messageD.MessageID
-	m.MessageIDStr = strconv.FormatInt(messageD.MessageID, 10)
+	m.MessageIDStr = strconv.FormatUint(messageD.MessageID, 10)
 	m.ClientMsgNo = messageD.ClientMsgNo
 	m.StreamNo = messageD.StreamNo
 	m.StreamSeq = messageD.StreamSeq

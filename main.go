@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"time"
 
 	"github.com/WuKongIM/WuKongIM/cmd"
 	"github.com/WuKongIM/WuKongIM/version"
@@ -20,6 +21,12 @@ var CommitDate string // git commit date
 var TreeState string  // git tree state
 
 func main() {
+
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		panic(err)
+	}
+	time.Local = loc
 
 	version.Version = Version
 	version.Commit = Commit

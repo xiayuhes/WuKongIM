@@ -56,7 +56,7 @@ func (r *RetryQueue) pushInFlightMessage(msg *Message) {
 
 }
 
-func (r *RetryQueue) popInFlightMessage(uid string, deviceID string, messageID int64) (*Message, error) {
+func (r *RetryQueue) popInFlightMessage(uid string, deviceID string, messageID uint64) (*Message, error) {
 	r.inFlightMutex.Lock()
 	defer r.inFlightMutex.Unlock()
 	key := r.getInFlightKey(uid, deviceID, messageID)
@@ -68,10 +68,10 @@ func (r *RetryQueue) popInFlightMessage(uid string, deviceID string, messageID i
 	return msg, nil
 }
 
-func (r *RetryQueue) getInFlightKey(uid string, deviceID string, messageID int64) string {
+func (r *RetryQueue) getInFlightKey(uid string, deviceID string, messageID uint64) string {
 	return fmt.Sprintf("%s_%s_%d", uid, deviceID, messageID)
 }
-func (r *RetryQueue) finishMessage(uid string, deviceID string, messageID int64) error {
+func (r *RetryQueue) finishMessage(uid string, deviceID string, messageID uint64) error {
 	msg, err := r.popInFlightMessage(uid, deviceID, messageID)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (r *RetryQueue) processInFlightQueue(t int64) {
 		}
 		err := r.finishMessage(msg.ToUID, msg.toDeviceID, msg.MessageID)
 		if err != nil {
-			r.s.Error("processInFlightQueue-finishMessage失败", zap.Error(err), zap.String("toDeviceID", msg.toDeviceID), zap.Int64("messageID", msg.MessageID))
+			r.s.Error("processInFlightQueue-finishMessage失败", zap.Error(err), zap.String("toDeviceID", msg.toDeviceID), zap.Uint64("messageID", msg.MessageID))
 			break
 		}
 		r.s.deliveryManager.startRetryDeliveryMsg(msg)
