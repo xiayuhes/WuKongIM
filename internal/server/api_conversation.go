@@ -258,9 +258,11 @@ func (s *ConversationAPI) syncUserConversation(c *wkhttp.Context) {
 	if len(newConversations) > 0 {
 		for _, conversation := range newConversations {
 			syncUserConversationR := newSyncUserConversationResp(conversation)
-			resps = append(resps, syncUserConversationR)
 
 			msgSeq := channelLastMsgMap[fmt.Sprintf("%s-%d", conversation.ChannelID, conversation.ChannelType)]
+			syncUserConversationR.OffsetMsgSeq = msgSeq
+			resps = append(resps, syncUserConversationR)
+
 			channelRecentMessageReqs = append(channelRecentMessageReqs, &channelRecentMessageReq{
 				ChannelID:   conversation.ChannelID,
 				ChannelType: conversation.ChannelType,
