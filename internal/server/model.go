@@ -381,7 +381,7 @@ type syncUserConversationResp struct {
 	ChannelType     uint8          `json:"channel_type"`       // 频道类型
 	Unread          int            `json:"unread"`             // 未读消息
 	Timestamp       int64          `json:"timestamp"`          // 最后一次会话时间
-	LastMsgId       uint64         `json:"last_msg_id"`        // 最后一条消息id
+	LastMsgId       string         `json:"last_msg_id"`        // 最后一条消息id
 	LastMsgSeq      uint32         `json:"last_msg_seq"`       // 最后一条消息seq
 	LastClientMsgNo string         `json:"last_client_msg_no"` // 最后一次消息客户端编号
 	OffsetMsgSeq    uint32         `json:"offset_msg_seq"`     // 偏移位的消息seq
@@ -396,7 +396,7 @@ func newSyncUserConversationResp(conversation *wkstore.Conversation) *syncUserCo
 		ChannelType:     conversation.ChannelType,
 		Unread:          conversation.UnreadCount,
 		Timestamp:       conversation.Timestamp,
-		LastMsgId:       conversation.LastMsgID,
+		LastMsgId:       strconv.FormatUint(conversation.LastMsgID, 10),
 		LastMsgSeq:      conversation.LastMsgSeq,
 		LastClientMsgNo: conversation.LastClientMsgNo,
 		OffsetMsgSeq:    conversation.OffsetMsgSeq,
