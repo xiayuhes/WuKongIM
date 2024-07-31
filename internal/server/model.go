@@ -399,6 +399,7 @@ func newSyncUserConversationResp(conversation *wkstore.Conversation) *syncUserCo
 		LastMsgId:       conversation.LastMsgID,
 		LastMsgSeq:      conversation.LastMsgSeq,
 		LastClientMsgNo: conversation.LastClientMsgNo,
+		OffsetMsgSeq:    conversation.OffsetMsgSeq,
 		Version:         conversation.Version,
 	}
 }
