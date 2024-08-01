@@ -171,7 +171,7 @@ const newConversation = (conversationObj: any) => {
     conversation.channelID = conversationObj.channel_id
     conversation.channelType = conversationObj.channel_type
     conversation.Unread = conversationObj.unread
-    conversation.timestamp = formatDate2(new Date(conversationObj.timestamp*1000))
+    conversation.timestamp = formatDate2(new Date(conversationObj.timestamp))
     conversation.lastMsgSeq = conversationObj.last_msg_seq
     conversation.lastClientMsgNo = conversationObj.last_client_msg_no
     conversation.offsetMsgSeq = conversationObj.offset_msg_seq
