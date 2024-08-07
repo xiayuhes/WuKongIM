@@ -30,11 +30,38 @@ func NewConversationAPI(s *Server) *ConversationAPI {
 // Route 路由
 func (s *ConversationAPI) Route(r *wkhttp.WKHttp) {
 	r.GET("/conversations", s.conversationsList)                    // 获取会话列表
+	r.POST("/conversations/one", s.conversation)                    // 获取指定会话
 	r.POST("/conversations/clearUnread", s.clearConversationUnread) // 清空会话未读数量
 	r.POST("/conversations/setUnread", s.setConversationUnread)     // 设置会话未读数量
 	r.POST("/conversations/delete", s.deleteConversation)           // 删除会话
 	r.POST("/conversation/sync", s.syncUserConversation)            // 同步会话
 	r.POST("/conversation/syncMessages", s.syncRecentMessages)      // 同步会话最近消息
+}
+
+func (s *ConversationAPI) conversation(c *wkhttp.Context) {
+	var req struct {
+		UID         string `json:"uid"`
+		ChannelID   string `json:"channel_id"`
+		ChannelType uint8  `json:"channel_type"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.ResponseError(err)
+		return
+	}
+	if req.UID == "" {
+		c.ResponseError(errors.New("UID cannot be empty"))
+		return
+	}
+	if req.ChannelID == "" || req.ChannelType == 0 {
+		c.ResponseError(errors.New("channel_id or channel_type cannot be empty"))
+		return
+	}
+	conversation := s.s.conversationManager.GetConversation(req.UID, req.ChannelID, req.ChannelType)
+	if conversation == nil {
+		c.ResponseError(errors.New("conversation not found"))
+		return
+	}
+	c.JSON(http.StatusOK, newSyncUserConversationResp(conversation))
 }
 
 // Get a list of recent conversations
