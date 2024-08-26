@@ -118,7 +118,7 @@ export const newMessage = (messageObj: any) => {
     m.channelID = messageObj.channel_id
     m.channelType = messageObj.channel_type
     m.topic = messageObj.topic
-    const date = new Date(messageObj.timestamp * 1000)
+    const date = new Date(messageObj.timestamp)
 
     m.timestamp = formatDate2(date)
     m.payload = messageObj.payload

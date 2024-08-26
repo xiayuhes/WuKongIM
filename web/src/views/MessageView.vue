@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import APIClient from '@/services/APIClient';
-import { newMessage, type Message, MessagePage, newMessagePage, channelTypeToString } from '@/services/Model';
+import {type Message, MessagePage, newMessagePage, channelTypeToString } from '@/services/Model';
 import { ref } from 'vue';
 import { Buffer } from 'buffer';
 import { ChannelTypePerson } from 'wukongimjssdk';
@@ -9,6 +9,7 @@ declare const payloadModal: any;
 
 const messagePage = ref<MessagePage>(new MessagePage())
 
+const messageSeq = ref<number>(0)
 const channelType = ref<number>(2)
 const channelID = ref<string>("")
 const fromUID = ref<string>("")
@@ -17,13 +18,10 @@ const errMsg = ref<string>()
 const payload = ref<string>()
 const page = ref<number>(0)
 
-
-
 const requestMessages = async () => {
-    let startMessageSeq = 0
     if (messagePage.value.data.length > 0) {
         const len = messagePage.value.data.length
-        startMessageSeq = messagePage.value.data[len - 1].messageSeq
+      messageSeq.value = messagePage.value.data[len - 1].messageSeq + 1
     }
 
     let fakeChannelID = channelID.value
@@ -32,13 +30,19 @@ const requestMessages = async () => {
     }
 
     const messagePageObj = await APIClient.shared.get('/api/messages', {
-        param: { "channel_id": fakeChannelID, "channel_type": channelType.value, "start_message_seq": startMessageSeq + 1, "limit": 20 },
+        param: {
+          "channel_id": fakeChannelID,
+          "channel_type": channelType.value,
+          "start_message_seq": messageSeq.value,
+          "limit": 20,
+        },
     }).catch((err) => {
         errMsg.value = err.message
     })
     page.value += 1
     messagePage.value = newMessagePage(messagePageObj)
 }
+
 const onSearch = () => {
     page.value = 0
     messagePage.value = new MessagePage()
@@ -54,6 +58,32 @@ const onNextPage = () => {
     requestMessages()
 }
 
+const onPrewPage = () => {
+  requestPrewMessages()
+}
+
+const requestPrewMessages = async () => {
+  messageSeq.value -= 20
+
+  let fakeChannelID = channelID.value
+  if (channelType.value.toString() === ChannelTypePerson.toString()) { // TODO: 搞不明白为什么要转换为字符串才行😭
+    fakeChannelID = `${fromUID.value}@${toUID.value}`
+  }
+
+  const messagePageObj = await APIClient.shared.get('/api/messages', {
+    param: {
+      "channel_id": fakeChannelID,
+      "channel_type": channelType.value,
+      "start_message_seq": messageSeq.value,
+      "limit": 20,
+    },
+  }).catch((err) => {
+    errMsg.value = err.message
+  })
+  page.value -= 1
+  messagePage.value = newMessagePage(messagePageObj)
+}
+
 
 </script>
 
@@ -62,9 +92,11 @@ const onNextPage = () => {
         <div className="join">
             <div>
                 <div v-if="channelType.toString() !== '1'">
+                    <input className="input input-bordered join-item" placeholder="messageSeq" v-model="messageSeq" />
                     <input className="input input-bordered join-item" placeholder="频道ID" v-model="channelID" />
                 </div>
                 <div v-if="channelType.toString() === '1'">
+                    <input className="input input-bordered join-item" placeholder="messageSeq" v-model="messageSeq" />
                     <input className="input input-bordered join-item" placeholder="发送者UID" v-model="fromUID" />
                     <input className="input input-bordered join-item" placeholder="接受者UID" v-model="toUID" />
                 </div>
@@ -128,7 +160,7 @@ const onNextPage = () => {
                 </div>
                 <div class="flex w-full justify-end pt-10">
                     <div class="join" v-if="messagePage && messagePage.data.length > 0">
-                        <button class="join-item btn">«</button>
+                        <button class="join-item btn" v-on:click="onPrewPage">«</button>
                         <button class="join-item btn">{{ page }}</button>
                         <button class="join-item btn" v-on:click="onNextPage">»</button>
                     </div>
